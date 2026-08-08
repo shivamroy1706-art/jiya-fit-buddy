@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const AskSchema = z.object({ message: z.string().min(1).max(4000) });
+const AskSchema = z.object({ message: z.string().min(1).max(4000), resend: z.boolean().optional() });
 
 const WEEKDAYS = [
   "Sunday",
@@ -27,11 +27,13 @@ export const askJiya = createServerFn({ method: "POST" })
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("AI is not configured");
 
-    // 1. persist the user's message
-    const { error: insertErr } = await supabase
-      .from("chat_messages")
-      .insert({ user_id: userId, sender: "user", message: data.message });
-    if (insertErr) throw new Error(insertErr.message);
+    // 1. persist the user's message (skipped when retrying an already-saved turn)
+    if (!data.resend) {
+      const { error: insertErr } = await supabase
+        .from("chat_messages")
+        .insert({ user_id: userId, sender: "user", message: data.message });
+      if (insertErr) throw new Error(insertErr.message);
+    }
 
     // 2. gather live user data
     const today = new Date();
@@ -152,21 +154,4 @@ ${JSON.stringify(liveContext)}`;
     if (saveErr) throw new Error(saveErr.message);
 
     return { id: saved.id, message: saved.message, created_at: saved.created_at };
-  });
-
-/** Retry a failed reply without re-inserting the user message. */
-export const retryJiya = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-    const { data: last } = await supabase
-      .from("chat_messages")
-      .select("message, sender")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!last || last.sender !== "user") throw new Error("Nothing to retry");
-    await supabase.from("chat_messages").delete().eq("user_id", userId).eq("sender", "user").eq("message", last.message).order("created_at", { ascending: false }).limit(1);
-    return { message: last.message };
   });
