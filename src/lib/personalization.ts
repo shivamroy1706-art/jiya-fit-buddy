@@ -252,7 +252,7 @@ export function generatePlan(a: OnboardingAnswers, allExercises: ExerciseRow[]):
       continue;
     }
 
-    const tpl = template[templateIndex % template.length];
+    const tpl = template[templateIndex % template.length] ?? { name: "Full Body", groups: ["Chest", "Back", "Quads"] };
     templateIndex += 1;
 
     // Rank candidates: matches the day's target groups first, priority groups boosted.
