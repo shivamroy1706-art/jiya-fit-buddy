@@ -127,10 +127,10 @@ function AuthScreen() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
-    if (usernameFormatError) return toast.error(usernameFormatError);
-    if (available === false) return toast.error("Username already taken");
-    if (available !== true) return toast.error("Please wait for the username check");
-    if (password.length < 8) return toast.error("Password must be at least 8 characters");
+    if (usernameFormatError) { toast.error(usernameFormatError); return; }
+    if (available === false) { toast.error("Username already taken"); return; }
+    if (available !== true) { toast.error("Please wait for the username check"); return; }
+    if (password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
 
     setBusy(true);
     try {
@@ -203,8 +203,8 @@ function AuthScreen() {
   async function handleClaimUsername(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    if (usernameFormatError) return toast.error(usernameFormatError);
-    if (available !== true) return toast.error("Pick an available username");
+    if (usernameFormatError) { toast.error(usernameFormatError); return; }
+    if (available !== true) { toast.error("Pick an available username"); return; }
     setBusy(true);
     try {
       const displayName =
