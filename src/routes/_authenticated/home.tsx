@@ -126,6 +126,30 @@ function Home() {
             </button>
           </section>
 
+          <section className="rounded-3xl border border-border bg-surface p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Moon className="size-4 text-primary" /> Sleep last night
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {data?.sleepHours ? `${data.sleepHours} h` : "Not logged"}
+              </span>
+            </div>
+            <div className="mt-3 flex gap-2">
+              {[5, 6, 7, 8, 9].map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => void logSleep(h)}
+                  className="flex-1 rounded-full border border-border py-1.5 text-xs font-semibold text-muted-foreground hover:border-primary/40 hover:text-primary"
+                >
+                  {h}h
+                </button>
+              ))}
+            </div>
+          </section>
+
+
           {targets?.daily_calories && (
             <section className="rounded-3xl border border-border bg-surface p-4">
               <p className="text-sm font-semibold">Daily macro targets</p>
