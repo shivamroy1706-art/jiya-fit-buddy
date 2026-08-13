@@ -37,7 +37,7 @@ function ProfilePage() {
         supabase.from("profiles").select("name, username, xp, streak_days, avatar_url").eq("id", user!.id).maybeSingle(),
         supabase.from("achievements").select("id, badge_type, label, earned_at").eq("user_id", user!.id),
         supabase.rpc("friends_leaderboard"),
-        supabase.from("friend_requests").select("id, from_user, status").eq("to_user", user!.id).eq("status", "pending"),
+        supabase.from("friend_requests").select("id, sender_id, status").eq("recipient_id", user!.id).eq("status", "pending"),
       ]);
       return {
         profile: profile.data,
@@ -76,7 +76,7 @@ function ProfilePage() {
 
   async function addFriend(id: string) {
     if (!user) return;
-    const { error } = await supabase.from("friend_requests").insert({ from_user: user.id, to_user: id });
+    const { error } = await supabase.from("friend_requests").insert({ sender_id: user.id, recipient_id: id });
     if (error) {
       toast.error(error.message);
       return;

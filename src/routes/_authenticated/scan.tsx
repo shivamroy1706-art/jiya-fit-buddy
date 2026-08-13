@@ -35,8 +35,6 @@ type ScanResult = {
   allergens: string[];
 };
 
-export default function noop() {}
-
 function ScanPage() {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
