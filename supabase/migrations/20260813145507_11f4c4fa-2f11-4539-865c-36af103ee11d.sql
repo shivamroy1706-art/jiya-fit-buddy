@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS sleep_logs_user_date_uniq ON public.sleep_logs (user_id, date);
