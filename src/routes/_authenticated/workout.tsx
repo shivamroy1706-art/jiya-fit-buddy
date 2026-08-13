@@ -37,11 +37,47 @@ function WorkoutPage() {
 
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [swapping, setSwapping] = useState<string | null>(null);
 
   const day = data?.todayPlan ?? null;
   const logged = !!data?.todaysLog;
   const total = day?.prescriptions.length ?? 0;
   const completed = Object.values(done).filter(Boolean).length;
+
+  async function swap(p: Prescription) {
+    if (!user || !day || !data?.onboarding) return;
+    setSwapping(p.exercise_id);
+    try {
+      const pool = await fetchExercises();
+      const answers = toAnswers(data.onboarding as unknown as Record<string, unknown>);
+      const target = pool.find((e) => e.id === p.exercise_id);
+      if (!target) throw new Error("Exercise not found");
+      const alt = findSubstitute(
+        target,
+        pool,
+        answers,
+        day.prescriptions.map((x) => x.exercise_id),
+      );
+      if (!alt) throw new Error("No safe alternative available");
+      const next: Prescription[] = day.prescriptions.map((x) =>
+        x.exercise_id === p.exercise_id
+          ? { ...x, exercise_id: alt.id, slug: alt.slug, name: alt.name }
+          : x,
+      );
+      const { error } = await supabase
+        .from("workout_days")
+        .update({ prescriptions: next, exercise_ids: next.map((x) => x.exercise_id) })
+        .eq("id", day.id);
+      if (error) throw error;
+      toast.success(`Swapped to ${alt.name}`);
+      await refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not swap exercise");
+    } finally {
+      setSwapping(null);
+    }
+  }
+
 
   async function finish() {
     if (!user || !day) return;
