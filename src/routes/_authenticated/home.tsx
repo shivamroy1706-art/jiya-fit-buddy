@@ -46,6 +46,15 @@ function Home() {
     void refetch();
   }
 
+  async function logSleep(hours: number) {
+    if (!user) return;
+    await supabase
+      .from("sleep_logs")
+      .upsert({ user_id: user.id, date: todayISO(), hours }, { onConflict: "user_id,date" });
+    void refetch();
+  }
+
+
   return (
     <main className="app-shell bg-background pb-28">
       <AppHeader showBell />
