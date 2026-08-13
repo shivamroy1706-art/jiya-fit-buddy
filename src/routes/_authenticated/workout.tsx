@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckCircle2, Circle, Loader2, Timer, Flame } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Timer, Flame, Repeat2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { fetchHomeData, todayISO, addXp } from "@/lib/app-data";
+import { findSubstitute, type Prescription } from "@/lib/personalization";
+import { fetchExercises, toAnswers } from "@/lib/plan";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/_authenticated/workout")({
   head: () => ({
@@ -34,11 +37,47 @@ function WorkoutPage() {
 
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  const [swapping, setSwapping] = useState<string | null>(null);
 
   const day = data?.todayPlan ?? null;
   const logged = !!data?.todaysLog;
   const total = day?.prescriptions.length ?? 0;
   const completed = Object.values(done).filter(Boolean).length;
+
+  async function swap(p: Prescription) {
+    if (!user || !day || !data?.onboarding) return;
+    setSwapping(p.exercise_id);
+    try {
+      const pool = await fetchExercises();
+      const answers = toAnswers(data.onboarding as unknown as Record<string, unknown>);
+      const target = pool.find((e) => e.id === p.exercise_id);
+      if (!target) throw new Error("Exercise not found");
+      const alt = findSubstitute(
+        target,
+        pool,
+        answers,
+        day.prescriptions.map((x) => x.exercise_id),
+      );
+      if (!alt) throw new Error("No safe alternative available");
+      const next: Prescription[] = day.prescriptions.map((x) =>
+        x.exercise_id === p.exercise_id
+          ? { ...x, exercise_id: alt.id, slug: alt.slug, name: alt.name }
+          : x,
+      );
+      const { error } = await supabase
+        .from("workout_days")
+        .update({ prescriptions: next, exercise_ids: next.map((x) => x.exercise_id) })
+        .eq("id", day.id);
+      if (error) throw error;
+      toast.success(`Swapped to ${alt.name}`);
+      await refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not swap exercise");
+    } finally {
+      setSwapping(null);
+    }
+  }
+
 
   async function finish() {
     if (!user || !day) return;
@@ -103,11 +142,15 @@ function WorkoutPage() {
                 {day.prescriptions.map((p) => {
                   const isDone = !!done[p.exercise_id];
                   return (
-                    <li key={p.exercise_id}>
+                    <li
+                      key={p.exercise_id}
+                      className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-3"
+                    >
                       <button
                         type="button"
+                        aria-pressed={isDone}
                         onClick={() => setDone((d) => ({ ...d, [p.exercise_id]: !isDone }))}
-                        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3 text-left"
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
                         {isDone ? (
                           <CheckCircle2 className="size-5 shrink-0 text-primary" />
@@ -121,7 +164,21 @@ function WorkoutPage() {
                           </span>
                         </span>
                       </button>
+                      <button
+                        type="button"
+                        aria-label={`Swap ${p.name}`}
+                        onClick={() => void swap(p)}
+                        disabled={swapping === p.exercise_id}
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground disabled:opacity-50"
+                      >
+                        {swapping === p.exercise_id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Repeat2 className="size-4" />
+                        )}
+                      </button>
                     </li>
+
                   );
                 })}
               </ul>
