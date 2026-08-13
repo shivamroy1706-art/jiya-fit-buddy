@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckCircle2, Circle, Loader2, Timer, Flame } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Timer, Flame, Repeat2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { fetchHomeData, todayISO, addXp } from "@/lib/app-data";
+import { findSubstitute, type Prescription } from "@/lib/personalization";
+import { fetchExercises, toAnswers } from "@/lib/plan";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/_authenticated/workout")({
   head: () => ({
