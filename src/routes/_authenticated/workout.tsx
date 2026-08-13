@@ -142,11 +142,15 @@ function WorkoutPage() {
                 {day.prescriptions.map((p) => {
                   const isDone = !!done[p.exercise_id];
                   return (
-                    <li key={p.exercise_id}>
+                    <li
+                      key={p.exercise_id}
+                      className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-3"
+                    >
                       <button
                         type="button"
+                        aria-pressed={isDone}
                         onClick={() => setDone((d) => ({ ...d, [p.exercise_id]: !isDone }))}
-                        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-surface p-3 text-left"
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
                         {isDone ? (
                           <CheckCircle2 className="size-5 shrink-0 text-primary" />
@@ -160,7 +164,21 @@ function WorkoutPage() {
                           </span>
                         </span>
                       </button>
+                      <button
+                        type="button"
+                        aria-label={`Swap ${p.name}`}
+                        onClick={() => void swap(p)}
+                        disabled={swapping === p.exercise_id}
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground disabled:opacity-50"
+                      >
+                        {swapping === p.exercise_id ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Repeat2 className="size-4" />
+                        )}
+                      </button>
                     </li>
+
                   );
                 })}
               </ul>
