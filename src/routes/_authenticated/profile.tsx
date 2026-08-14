@@ -49,14 +49,16 @@ function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: results } = useQuery({
-    queryKey: ["search-users", query],
+  const { data: results, isFetching: searching } = useQuery({
+    queryKey: ["search-users", query.trim()],
     queryFn: async () => {
-      const { data } = await supabase.rpc("search_users", { _q: query });
+      const { data, error } = await supabase.rpc("search_users", { _q: query.trim() });
+      if (error) throw error;
       return data ?? [];
     },
     enabled: query.trim().length >= 2,
   });
+
 
   const xp = data?.profile?.xp ?? 0;
   const level = levelFromXp(xp);
