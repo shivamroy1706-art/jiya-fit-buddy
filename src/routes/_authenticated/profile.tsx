@@ -199,9 +199,20 @@ function ProfilePage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by username"
+              placeholder="Search by username or name"
               className="mt-3 w-full rounded-full border border-border bg-surface-alt px-4 py-2.5 text-sm outline-none focus:border-primary"
             />
+            {query.trim().length > 0 && query.trim().length < 2 && (
+              <p className="mt-2 text-xs text-muted-foreground">Type at least 2 characters.</p>
+            )}
+            {query.trim().length >= 2 && searching && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin text-primary" /> Searching…
+              </p>
+            )}
+            {query.trim().length >= 2 && !searching && (results ?? []).length === 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">No users found for “{query.trim()}”.</p>
+            )}
             <ul className="mt-2 space-y-2">
               {(results ?? [])
                 .filter((r) => r.id !== user?.id)
@@ -220,6 +231,7 @@ function ProfilePage() {
                   </li>
                 ))}
             </ul>
+
           </section>
 
           <button
