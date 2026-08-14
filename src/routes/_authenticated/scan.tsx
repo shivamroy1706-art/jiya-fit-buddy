@@ -7,6 +7,8 @@ import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { GRADE_CLASS, GRADE_MEANING, computeGrade, normalizeGrade, type Grade } from "@/lib/nutri-score";
+
 
 export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/scan")({
 type ScanResult = {
   food_name: string;
   brand: string | null;
-  grade: string | null;
+  grade: Grade | null;
   calories: number | null;
   serving_size: string | null;
   ingredients: string | null;
@@ -52,7 +54,7 @@ function ScanPage() {
         .select("id, food_name, brand, grade, calories, scanned_at")
         .eq("user_id", user!.id)
         .order("scanned_at", { ascending: false })
-        .limit(20);
+        .limit(5);
       return data ?? [];
     },
     enabled: !!user,
@@ -107,10 +109,21 @@ function ScanPage() {
       }
       const p = json.product;
       const n = (p["nutriments"] ?? {}) as Record<string, number | undefined>;
+      const grade =
+        normalizeGrade(p["nutriscore_grade"] as string) ??
+        computeGrade({
+          energyKcal: n["energy-kcal_100g"] ?? null,
+          sugars: n["sugars_100g"] ?? null,
+          saturatedFat: n["saturated-fat_100g"] ?? null,
+          salt: n["salt_100g"] ?? null,
+          sodium: n["sodium_100g"] ?? null,
+          fiber: n["fiber_100g"] ?? null,
+          protein: n["proteins_100g"] ?? null,
+        });
       const parsed: ScanResult = {
         food_name: (p["product_name"] as string) || "Unknown food",
         brand: (p["brands"] as string) ?? null,
-        grade: ((p["nutriscore_grade"] as string) ?? "").toUpperCase() || null,
+        grade,
         calories: n["energy-kcal_100g"] != null ? Math.round(n["energy-kcal_100g"]) : null,
         serving_size: (p["serving_size"] as string) ?? null,
         ingredients: (p["ingredients_text"] as string) ?? null,
@@ -124,6 +137,7 @@ function ScanPage() {
         allergens: ((p["allergens_tags"] as string[]) ?? []).map((a) => a.replace(/^en:/, "")),
       };
       setResult(parsed);
+
 
       await supabase.from("nutrition_scans").insert({
         user_id: user.id,
@@ -204,17 +218,25 @@ function ScanPage() {
         {result && (
           <section className="rounded-3xl border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 font-display text-lg font-bold text-primary">
+              <span
+                className={`flex size-11 items-center justify-center rounded-2xl font-display text-lg font-bold ${
+                  result.grade ? GRADE_CLASS[result.grade] : "bg-surface-alt text-muted-foreground"
+                }`}
+              >
                 {result.grade ?? "?"}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-lg font-bold">{result.food_name}</p>
                 <p className="text-xs text-muted-foreground">{result.brand ?? "Unknown brand"}</p>
+                <p className="mt-0.5 text-[11px] font-semibold">
+                  {result.grade ? GRADE_MEANING[result.grade] : "Not enough data to score"}
+                </p>
               </div>
               <button type="button" aria-label="Dismiss" onClick={() => setResult(null)}>
                 <X className="size-4 text-muted-foreground" />
               </button>
             </div>
+
             <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
               {[
                 { l: "kcal", v: result.calories },
@@ -240,28 +262,37 @@ function ScanPage() {
 
         <section>
           <h2 className="mb-2 text-sm font-semibold">Scan history</h2>
+          <p className="mb-2 text-[11px] text-muted-foreground">Your 5 most recent scans.</p>
           {(history ?? []).length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-4 text-xs text-muted-foreground">
               No scans yet.
             </p>
           ) : (
             <ul className="space-y-2">
-              {history!.map((s) => (
-                <li key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 font-display font-bold text-primary">
-                    {s.grade ?? "?"}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{s.food_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {s.brand ?? "—"} · {s.calories ?? "—"} kcal
+              {history!.map((s) => {
+                const g = normalizeGrade(s.grade);
+                return (
+                  <li key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+                    <span
+                      className={`flex size-9 items-center justify-center rounded-xl font-display font-bold ${
+                        g ? GRADE_CLASS[g] : "bg-surface-alt text-muted-foreground"
+                      }`}
+                    >
+                      {g ?? "?"}
                     </span>
-                  </span>
-                </li>
-              ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{s.food_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {s.brand ?? "—"} · {s.calories ?? "—"} kcal{g ? ` · ${GRADE_MEANING[g]}` : ""}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
+
       </div>
       <BottomNav />
     </main>
