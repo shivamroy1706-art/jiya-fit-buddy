@@ -107,10 +107,21 @@ function ScanPage() {
       }
       const p = json.product;
       const n = (p["nutriments"] ?? {}) as Record<string, number | undefined>;
+      const grade =
+        normalizeGrade(p["nutriscore_grade"] as string) ??
+        computeGrade({
+          energyKcal: n["energy-kcal_100g"] ?? null,
+          sugars: n["sugars_100g"] ?? null,
+          saturatedFat: n["saturated-fat_100g"] ?? null,
+          salt: n["salt_100g"] ?? null,
+          sodium: n["sodium_100g"] ?? null,
+          fiber: n["fiber_100g"] ?? null,
+          protein: n["proteins_100g"] ?? null,
+        });
       const parsed: ScanResult = {
         food_name: (p["product_name"] as string) || "Unknown food",
         brand: (p["brands"] as string) ?? null,
-        grade: ((p["nutriscore_grade"] as string) ?? "").toUpperCase() || null,
+        grade,
         calories: n["energy-kcal_100g"] != null ? Math.round(n["energy-kcal_100g"]) : null,
         serving_size: (p["serving_size"] as string) ?? null,
         ingredients: (p["ingredients_text"] as string) ?? null,
@@ -124,6 +135,7 @@ function ScanPage() {
         allergens: ((p["allergens_tags"] as string[]) ?? []).map((a) => a.replace(/^en:/, "")),
       };
       setResult(parsed);
+
 
       await supabase.from("nutrition_scans").insert({
         user_id: user.id,
