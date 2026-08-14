@@ -218,17 +218,25 @@ function ScanPage() {
         {result && (
           <section className="rounded-3xl border border-border bg-surface p-4">
             <div className="flex items-start gap-3">
-              <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 font-display text-lg font-bold text-primary">
+              <span
+                className={`flex size-11 items-center justify-center rounded-2xl font-display text-lg font-bold ${
+                  result.grade ? GRADE_CLASS[result.grade] : "bg-surface-alt text-muted-foreground"
+                }`}
+              >
                 {result.grade ?? "?"}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-lg font-bold">{result.food_name}</p>
                 <p className="text-xs text-muted-foreground">{result.brand ?? "Unknown brand"}</p>
+                <p className="mt-0.5 text-[11px] font-semibold">
+                  {result.grade ? GRADE_MEANING[result.grade] : "Not enough data to score"}
+                </p>
               </div>
               <button type="button" aria-label="Dismiss" onClick={() => setResult(null)}>
                 <X className="size-4 text-muted-foreground" />
               </button>
             </div>
+
             <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
               {[
                 { l: "kcal", v: result.calories },
