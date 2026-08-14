@@ -262,28 +262,37 @@ function ScanPage() {
 
         <section>
           <h2 className="mb-2 text-sm font-semibold">Scan history</h2>
+          <p className="mb-2 text-[11px] text-muted-foreground">Your 5 most recent scans.</p>
           {(history ?? []).length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border p-4 text-xs text-muted-foreground">
               No scans yet.
             </p>
           ) : (
             <ul className="space-y-2">
-              {history!.map((s) => (
-                <li key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
-                  <span className="flex size-9 items-center justify-center rounded-xl bg-primary/15 font-display font-bold text-primary">
-                    {s.grade ?? "?"}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{s.food_name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {s.brand ?? "—"} · {s.calories ?? "—"} kcal
+              {history!.map((s) => {
+                const g = normalizeGrade(s.grade);
+                return (
+                  <li key={s.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-3">
+                    <span
+                      className={`flex size-9 items-center justify-center rounded-xl font-display font-bold ${
+                        g ? GRADE_CLASS[g] : "bg-surface-alt text-muted-foreground"
+                      }`}
+                    >
+                      {g ?? "?"}
                     </span>
-                  </span>
-                </li>
-              ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{s.food_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {s.brand ?? "—"} · {s.calories ?? "—"} kcal{g ? ` · ${GRADE_MEANING[g]}` : ""}
+                      </span>
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
+
       </div>
       <BottomNav />
     </main>
