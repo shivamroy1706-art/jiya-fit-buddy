@@ -54,7 +54,7 @@ function ScanPage() {
         .select("id, food_name, brand, grade, calories, scanned_at")
         .eq("user_id", user!.id)
         .order("scanned_at", { ascending: false })
-        .limit(20);
+        .limit(5);
       return data ?? [];
     },
     enabled: !!user,
