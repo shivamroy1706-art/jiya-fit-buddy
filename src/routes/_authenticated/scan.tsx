@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/scan")({
 type ScanResult = {
   food_name: string;
   brand: string | null;
-  grade: string | null;
+  grade: Grade | null;
   calories: number | null;
   serving_size: string | null;
   ingredients: string | null;
