@@ -7,6 +7,8 @@ import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { GRADE_CLASS, GRADE_MEANING, computeGrade, normalizeGrade, type Grade } from "@/lib/nutri-score";
+
 
 export const Route = createFileRoute("/_authenticated/scan")({
   head: () => ({
