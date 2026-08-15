@@ -4,6 +4,7 @@ import { Flame, Dumbbell, Droplets, Moon, Apple, ChevronRight, Loader2 } from "l
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { ProgressRing } from "@/components/app/ProgressRing";
+import { StepsCard } from "@/components/app/StepsCard";
 import { useAuth } from "@/lib/auth";
 import { fetchHomeData, todayISO } from "@/lib/app-data";
 import { levelFromXp } from "@/lib/personalization";
@@ -110,6 +111,14 @@ function Home() {
               value={data?.sleepHours ? `${data.sleepHours} h` : "Not logged"}
             />
           </section>
+
+          {user && (
+            <StepsCard
+              userId={user.id}
+              initialSteps={data?.steps ?? 0}
+              weightKg={targets?.weight ?? null}
+            />
+          )}
 
           <section className="rounded-3xl border border-border bg-surface p-4">
             <div className="flex items-center justify-between">
