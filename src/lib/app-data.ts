@@ -54,7 +54,7 @@ export async function fetchActivePlan(userId: string) {
 
 export async function fetchHomeData(userId: string) {
   const today = todayISO();
-  const [profileRes, onboardingRes, planRes, logsRes, waterRes, sleepRes, scansRes] = await Promise.all([
+  const [profileRes, onboardingRes, planRes, logsRes, waterRes, sleepRes, scansRes, stepsRes] = await Promise.all([
     supabase.from("profiles").select("name, username, xp, streak_days, last_active_date").eq("id", userId).maybeSingle(),
     supabase.from("user_profiles").select("*").eq("user_id", userId).maybeSingle(),
     fetchActivePlan(userId),
@@ -62,6 +62,7 @@ export async function fetchHomeData(userId: string) {
     supabase.from("water_logs").select("ml").eq("user_id", userId).eq("date", today),
     supabase.from("sleep_logs").select("hours").eq("user_id", userId).eq("date", today).maybeSingle(),
     supabase.from("nutrition_scans").select("id, food_name, grade, calories, scanned_at, image_url").eq("user_id", userId).order("scanned_at", { ascending: false }).limit(5),
+    supabase.from("step_logs").select("steps").eq("user_id", userId).eq("date", today).maybeSingle(),
   ]);
 
   const logs = logsRes.data ?? [];
@@ -80,6 +81,7 @@ export async function fetchHomeData(userId: string) {
     logs,
     waterMl,
     sleepHours: sleepRes.data?.hours ?? null,
+    steps: stepsRes.data?.steps ?? 0,
     scans: scansRes.data ?? [],
   };
 }
