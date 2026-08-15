@@ -488,6 +488,39 @@ export type Database = {
         }
         Relationships: []
       }
+      walk_routes: {
+        Row: {
+          created_at: string
+          date: string
+          distance_m: number
+          ended_at: string | null
+          id: string
+          path: Json
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          distance_m?: number
+          ended_at?: string | null
+          id?: string
+          path?: Json
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          distance_m?: number
+          ended_at?: string | null
+          id?: string
+          path?: Json
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       water_logs: {
         Row: {
           created_at: string
