@@ -116,7 +116,7 @@ function Home() {
             <StepsCard
               userId={user.id}
               initialSteps={data?.steps ?? 0}
-              weightKg={targets?.weight_kg ?? null}
+              weightKg={targets?.weight ?? null}
             />
           )}
 
