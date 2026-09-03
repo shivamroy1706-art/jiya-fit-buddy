@@ -108,19 +108,43 @@ export function StepsCard({ userId, initialSteps, weightKg, goal = 8000 }: Props
         <Metric label="Goal" value={`${Math.round(pct)}%`} />
       </div>
 
-      {supported ? (
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {supported ? (
+          <button
+            type="button"
+            onClick={() => void toggle()}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-4 py-1.5 text-xs font-semibold text-primary"
+          >
+            {tracking ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+            {tracking ? "Pause step tracking" : "Track my steps"}
+          </button>
+        ) : (
+          <p className="text-[11px] text-muted-foreground">
+            Step tracking needs a phone with motion sensors — open the app on your phone to count steps.
+          </p>
+        )}
         <button
           type="button"
-          onClick={() => void toggle()}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-4 py-1.5 text-xs font-semibold text-primary"
+          onClick={() => setShowMap((s) => !s)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-4 py-1.5 text-xs font-semibold text-primary"
         >
-          {tracking ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-          {tracking ? "Pause step tracking" : "Track my steps"}
+          <MapIcon className="size-3.5" />
+          {showMap ? "Hide map" : "Map"}
         </button>
-      ) : (
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          Step tracking needs a phone with motion sensors — open the app on your phone to count steps.
-        </p>
+      </div>
+
+      {showMap && (
+        <ClientOnly>
+          <Suspense
+            fallback={
+              <div className="mt-3 flex h-56 items-center justify-center rounded-2xl border border-border bg-surface-alt">
+                <Loader2 className="size-5 animate-spin text-primary" />
+              </div>
+            }
+          >
+            <WalkMap userId={userId} />
+          </Suspense>
+        </ClientOnly>
       )}
 
       {tracking && (
