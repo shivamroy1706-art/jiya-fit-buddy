@@ -25,6 +25,7 @@ export function StepsCard({ userId, initialSteps, weightKg, goal = 8000 }: Props
   const [tracking, setTracking] = useState(false);
   const [supported, setSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const stepsRef = useRef(initialSteps);
   const savingRef = useRef(false);
