@@ -25,6 +25,8 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
       },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean } =>
+    search["edit"] === true || search["edit"] === "true" || search["edit"] === "1" ? { edit: true } : {},
   component: Onboarding,
 });
 
@@ -143,6 +145,7 @@ const STEPS: Step[] = [
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { edit } = Route.useSearch();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY);
@@ -154,7 +157,7 @@ function Onboarding() {
     void (async () => {
       const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (data) {
-        if (data.onboarding_completed_at) {
+        if (data.onboarding_completed_at && !edit) {
           void navigate({ to: "/home", replace: true });
           return;
         }
@@ -179,11 +182,11 @@ function Onboarding() {
           session_duration: data.session_duration,
           injuries: data.injuries ?? [],
         }));
-        setStep(Math.min(data.onboarding_step ?? 0, STEPS.length - 1));
+        setStep(edit ? 0 : Math.min(data.onboarding_step ?? 0, STEPS.length - 1));
       }
       setReady(true);
     })();
-  }, [user, navigate]);
+  }, [user, navigate, edit]);
 
   const current = STEPS[step]!;
   const value = answers[current.key];
@@ -242,15 +245,8 @@ function Onboarding() {
     );
   }
 
-  async function next() {
-    if (!canAdvance || !user) return;
-    if (step < STEPS.length - 1) {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      void persist(nextStep);
-      return;
-    }
-
+  async function finishAll() {
+    if (!user || saving) return;
     setSaving(true);
     try {
       const days = answers.days_per_week ?? 3;
@@ -266,13 +262,24 @@ function Onboarding() {
         .eq("user_id", user.id);
       if (error) throw error;
       await regeneratePlan(user.id);
-      toast.success("Your plan is ready!");
+      toast.success(edit ? "Answers saved — your plan was rebuilt" : "Your plan is ready!");
       void navigate({ to: "/home", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not build your plan");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function next() {
+    if (!canAdvance || !user || saving) return;
+    if (step < STEPS.length - 1) {
+      const nextStep = step + 1;
+      setStep(nextStep);
+      void persist(nextStep);
+      return;
+    }
+    await finishAll();
   }
 
   if (!ready) {
@@ -398,16 +405,26 @@ function Onboarding() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] bg-gradient-to-t from-background via-background to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
+      <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] space-y-2 bg-gradient-to-t from-background via-background to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
         <button
           type="button"
           disabled={!canAdvance || saving}
           onClick={() => void next()}
-          className="flex h-13 w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+          className="tap flex h-13 w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-semibold text-primary-foreground disabled:opacity-40"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
-          {step === STEPS.length - 1 ? "Generate my plan" : "Continue"}
+          {step === STEPS.length - 1 ? (edit ? "Save & rebuild plan" : "Generate my plan") : "Continue"}
         </button>
+        {edit && step < STEPS.length - 1 && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void finishAll()}
+            className="tap flex w-full items-center justify-center gap-2 rounded-full border border-border py-3 text-sm font-semibold text-muted-foreground disabled:opacity-40"
+          >
+            Save changes & rebuild plan now
+          </button>
+        )}
       </div>
     </main>
   );
