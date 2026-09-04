@@ -25,9 +25,8 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
       },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
-    edit: search["edit"] === true || search["edit"] === "true" || search["edit"] === "1",
-  }),
+  validateSearch: (search: Record<string, unknown>): { edit?: boolean } =>
+    search["edit"] === true || search["edit"] === "true" || search["edit"] === "1" ? { edit: true } : {},
   component: Onboarding,
 });
 
