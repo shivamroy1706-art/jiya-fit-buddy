@@ -405,16 +405,26 @@ function Onboarding() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] bg-gradient-to-t from-background via-background to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
+      <div className="fixed inset-x-0 bottom-0 mx-auto w-full max-w-[480px] space-y-2 bg-gradient-to-t from-background via-background to-transparent px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-6">
         <button
           type="button"
           disabled={!canAdvance || saving}
           onClick={() => void next()}
-          className="flex h-13 w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-semibold text-primary-foreground transition-opacity disabled:opacity-40"
+          className="tap flex h-13 w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-semibold text-primary-foreground disabled:opacity-40"
         >
           {saving && <Loader2 className="size-4 animate-spin" />}
-          {step === STEPS.length - 1 ? "Generate my plan" : "Continue"}
+          {step === STEPS.length - 1 ? (edit ? "Save & rebuild plan" : "Generate my plan") : "Continue"}
         </button>
+        {edit && step < STEPS.length - 1 && (
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void finishAll()}
+            className="tap flex w-full items-center justify-center gap-2 rounded-full border border-border py-3 text-sm font-semibold text-muted-foreground disabled:opacity-40"
+          >
+            Save changes & rebuild plan now
+          </button>
+        )}
       </div>
     </main>
   );
