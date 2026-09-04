@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { CheckCircle2, Circle, Loader2, Timer, Flame, Repeat2 } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, Timer, Flame, ChevronRight, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
+import { ExerciseSheet } from "@/components/app/ExerciseSheet";
 import { useAuth } from "@/lib/auth";
 import { fetchHomeData, todayISO, addXp } from "@/lib/app-data";
 import { findSubstitute, type Prescription } from "@/lib/personalization";
 import { fetchExercises, toAnswers } from "@/lib/plan";
 import { supabase } from "@/integrations/supabase/client";
-
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/workout")({
   head: () => ({
@@ -18,10 +19,11 @@ export const Route = createFileRoute("/_authenticated/workout")({
       { title: "Today's Workout — AI Fitness Trainer" },
       {
         name: "description",
-        content: "Your personalized session: exercises, sets, reps and rest — tick them off as you train.",
+        content:
+          "Your personalized session: tap any exercise for Jiya's step-by-step how-to plus a set and rest timer.",
       },
       { property: "og:title", content: "Today's Workout" },
-      { property: "og:description", content: "Guided sets, reps and rest for your personalized session." },
+      { property: "og:description", content: "Guided sets, reps, rest timers and AI form coaching." },
     ],
   }),
   component: WorkoutPage,
@@ -38,11 +40,13 @@ function WorkoutPage() {
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [swapping, setSwapping] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const day = data?.todayPlan ?? null;
   const logged = !!data?.todaysLog;
   const total = day?.prescriptions.length ?? 0;
   const completed = Object.values(done).filter(Boolean).length;
+  const open = day?.prescriptions.find((p) => p.exercise_id === openId) ?? null;
 
   async function swap(p: Prescription) {
     if (!user || !day || !data?.onboarding) return;
@@ -60,9 +64,7 @@ function WorkoutPage() {
       );
       if (!alt) throw new Error("No safe alternative available");
       const next: Prescription[] = day.prescriptions.map((x) =>
-        x.exercise_id === p.exercise_id
-          ? { ...x, exercise_id: alt.id, slug: alt.slug, name: alt.name }
-          : x,
+        x.exercise_id === p.exercise_id ? { ...x, exercise_id: alt.id, slug: alt.slug, name: alt.name } : x,
       );
       const { error } = await supabase
         .from("workout_days")
@@ -70,6 +72,7 @@ function WorkoutPage() {
         .eq("id", day.id);
       if (error) throw error;
       toast.success(`Swapped to ${alt.name}`);
+      setOpenId(alt.id);
       await refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not swap exercise");
@@ -78,9 +81,8 @@ function WorkoutPage() {
     }
   }
 
-
   async function finish() {
-    if (!user || !day) return;
+    if (!user || !day || saving) return;
     setSaving(true);
     const ids = day.prescriptions.filter((p) => done[p.exercise_id]).map((p) => p.exercise_id);
     const ratio = total ? ids.length / total : 1;
@@ -117,7 +119,7 @@ function WorkoutPage() {
         </p>
       ) : (
         <div className="space-y-4 px-4">
-          <section className="rounded-3xl border border-border bg-surface p-4">
+          <section className="animate-fade-up rounded-3xl border border-border bg-surface p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">
               {day.is_rest ? "Rest day" : "Today"}
             </p>
@@ -130,6 +132,19 @@ function WorkoutPage() {
                 <Flame className="size-3.5" /> ~{day.estimated_calories} kcal
               </span>
             </div>
+            {!day.is_rest && total > 0 && (
+              <>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${(completed / total) * 100}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {completed} of {total} exercises done
+                </p>
+              </>
+            )}
           </section>
 
           {day.is_rest ? (
@@ -138,47 +153,49 @@ function WorkoutPage() {
             </section>
           ) : (
             <>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Sparkles className="size-3.5 text-primary" /> Tap an exercise for Jiya's how-to and a set timer.
+              </p>
               <ul className="space-y-2">
                 {day.prescriptions.map((p) => {
                   const isDone = !!done[p.exercise_id];
                   return (
                     <li
                       key={p.exercise_id}
-                      className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-3"
+                      className={cn(
+                        "flex items-center gap-2 rounded-2xl border bg-surface p-3 transition-colors",
+                        isDone ? "border-primary/50 bg-primary/5" : "border-border",
+                      )}
                     >
                       <button
                         type="button"
+                        aria-label={isDone ? `Mark ${p.name} not done` : `Mark ${p.name} done`}
                         aria-pressed={isDone}
                         onClick={() => setDone((d) => ({ ...d, [p.exercise_id]: !isDone }))}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        className="tap flex size-9 shrink-0 items-center justify-center rounded-full"
                       >
                         {isDone ? (
-                          <CheckCircle2 className="size-5 shrink-0 text-primary" />
+                          <CheckCircle2 className="size-5 text-primary" />
                         ) : (
-                          <Circle className="size-5 shrink-0 text-muted-foreground" />
+                          <Circle className="size-5 text-muted-foreground" />
                         )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpenId(p.exercise_id)}
+                        className="tap flex min-w-0 flex-1 items-center gap-2 text-left"
+                      >
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{p.name}</span>
+                          <span className={cn("block truncate text-sm font-medium", isDone && "line-through opacity-60")}>
+                            {p.name}
+                          </span>
                           <span className="text-xs text-muted-foreground">
                             {p.sets} × {p.reps} · {p.rest_seconds}s rest
                           </span>
                         </span>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Swap ${p.name}`}
-                        onClick={() => void swap(p)}
-                        disabled={swapping === p.exercise_id}
-                        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground disabled:opacity-50"
-                      >
-                        {swapping === p.exercise_id ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Repeat2 className="size-4" />
-                        )}
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                       </button>
                     </li>
-
                   );
                 })}
               </ul>
@@ -187,17 +204,27 @@ function WorkoutPage() {
                 type="button"
                 onClick={() => void finish()}
                 disabled={saving || logged || completed === 0}
-                className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                className="tap inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
-                {logged
-                  ? "Already logged today"
-                  : saving
-                    ? "Saving…"
-                    : `Finish workout (${completed}/${total})`}
+                {saving && <Loader2 className="size-4 animate-spin" />}
+                {logged ? "Already logged today" : saving ? "Saving…" : `Finish workout (${completed}/${total})`}
               </button>
             </>
           )}
         </div>
+      )}
+      {open && (
+        <ExerciseSheet
+          prescription={open}
+          swapping={swapping === open.exercise_id}
+          onClose={() => setOpenId(null)}
+          onSwap={() => void swap(open)}
+          onComplete={() => {
+            setDone((d) => ({ ...d, [open.exercise_id]: true }));
+            setOpenId(null);
+            toast.success(`${open.name} done 💪`);
+          }}
+        />
       )}
       <BottomNav />
     </main>
