@@ -182,11 +182,11 @@ function Onboarding() {
           session_duration: data.session_duration,
           injuries: data.injuries ?? [],
         }));
-        setStep(Math.min(data.onboarding_step ?? 0, STEPS.length - 1));
+        setStep(edit ? 0 : Math.min(data.onboarding_step ?? 0, STEPS.length - 1));
       }
       setReady(true);
     })();
-  }, [user, navigate]);
+  }, [user, navigate, edit]);
 
   const current = STEPS[step]!;
   const value = answers[current.key];
