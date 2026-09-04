@@ -145,6 +145,7 @@ const STEPS: Step[] = [
 
 function Onboarding() {
   const navigate = useNavigate();
+  const { edit } = Route.useSearch();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY);
@@ -156,7 +157,7 @@ function Onboarding() {
     void (async () => {
       const { data } = await supabase.from("user_profiles").select("*").eq("user_id", user.id).maybeSingle();
       if (data) {
-        if (data.onboarding_completed_at) {
+        if (data.onboarding_completed_at && !edit) {
           void navigate({ to: "/home", replace: true });
           return;
         }
