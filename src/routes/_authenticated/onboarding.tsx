@@ -245,15 +245,8 @@ function Onboarding() {
     );
   }
 
-  async function next() {
-    if (!canAdvance || !user) return;
-    if (step < STEPS.length - 1) {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      void persist(nextStep);
-      return;
-    }
-
+  async function finishAll() {
+    if (!user || saving) return;
     setSaving(true);
     try {
       const days = answers.days_per_week ?? 3;
@@ -269,13 +262,24 @@ function Onboarding() {
         .eq("user_id", user.id);
       if (error) throw error;
       await regeneratePlan(user.id);
-      toast.success("Your plan is ready!");
+      toast.success(edit ? "Answers saved — your plan was rebuilt" : "Your plan is ready!");
       void navigate({ to: "/home", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not build your plan");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function next() {
+    if (!canAdvance || !user || saving) return;
+    if (step < STEPS.length - 1) {
+      const nextStep = step + 1;
+      setStep(nextStep);
+      void persist(nextStep);
+      return;
+    }
+    await finishAll();
   }
 
   if (!ready) {
