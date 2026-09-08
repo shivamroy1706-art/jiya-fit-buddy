@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Award, Loader2, LogOut, RefreshCw, Trophy, UserPlus } from "lucide-react";
+import { Award, Loader2, LogOut, RefreshCw, Target, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { levelFromXp } from "@/lib/personalization";
 import { regeneratePlan } from "@/lib/plan";
+import { fetchPlanHealth } from "@/lib/plan-health";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/profile")({
