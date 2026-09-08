@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Award, Loader2, LogOut, RefreshCw, Trophy, UserPlus } from "lucide-react";
+import { Award, Loader2, LogOut, RefreshCw, Target, Trophy, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
 import { useAuth } from "@/lib/auth";
 import { levelFromXp } from "@/lib/personalization";
 import { regeneratePlan } from "@/lib/plan";
+import { fetchPlanHealth } from "@/lib/plan-health";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/profile")({
@@ -59,16 +60,26 @@ function ProfilePage() {
     enabled: query.trim().length >= 2,
   });
 
+  const {
+    data: health,
+    isLoading: healthLoading,
+    refetch: refetchHealth,
+  } = useQuery({
+    queryKey: ["plan-health", user?.id],
+    queryFn: () => fetchPlanHealth(user!.id),
+    enabled: !!user,
+  });
 
   const xp = data?.profile?.xp ?? 0;
   const level = levelFromXp(xp);
 
   async function regenerate() {
-    if (!user) return;
+    if (!user || busy) return;
     setBusy(true);
     try {
       await regeneratePlan(user.id);
-      toast.success("Plan regenerated for your current profile");
+      await refetchHealth();
+      toast.success("Fresh plan built from your latest answers");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not regenerate plan");
     } finally {
@@ -117,21 +128,63 @@ function ProfilePage() {
             </div>
           </section>
 
-          <section className="flex gap-2">
-            <Link
-              to="/onboarding"
-              className="flex-1 rounded-full border border-border bg-surface py-2.5 text-center text-xs font-semibold"
-            >
-              Edit answers
-            </Link>
-            <button
-              type="button"
-              onClick={() => void regenerate()}
-              disabled={busy}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              <RefreshCw className={busy ? "size-3.5 animate-spin" : "size-3.5"} /> Regenerate plan
-            </button>
+          <section
+            className={`animate-fade-up rounded-3xl border p-4 ${
+              health?.shouldRegenerate ? "border-primary/60 bg-primary/5" : "border-border bg-surface"
+            }`}
+          >
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <Target className="size-4 text-primary" /> Your plan
+            </h2>
+            {healthLoading ? (
+              <p className="mt-2 text-xs text-muted-foreground">Checking your plan…</p>
+            ) : health ? (
+              <>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {health.generatedOn
+                    ? `Built ${health.weeksOld === 0 ? "this week" : `${health.weeksOld} week${health.weeksOld === 1 ? "" : "s"} ago`}`
+                    : "No plan yet"}
+                  {health.currentWeight != null && health.targetWeight != null
+                    ? ` · ${health.currentWeight} kg → ${health.targetWeight} kg`
+                    : ""}
+                </p>
+                {health.targetWeight != null && (
+                  <>
+                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-700"
+                        style={{ width: `${Math.max(2, Math.min(100, health.progressPct))}%` }}
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                      {Math.round(health.progressPct)}% of the way to your goal
+                    </p>
+                  </>
+                )}
+                <p className={`mt-3 text-xs ${health.shouldRegenerate ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                  {health.reason}
+                </p>
+              </>
+            ) : null}
+
+            <div className="mt-4 flex gap-2">
+              <Link
+                to="/onboarding"
+                search={{ edit: true }}
+                className="tap flex-1 rounded-full border border-border bg-surface py-2.5 text-center text-xs font-semibold"
+              >
+                Edit answers
+              </Link>
+              <button
+                type="button"
+                onClick={() => void regenerate()}
+                disabled={busy}
+                className="tap inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-primary py-2.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                <RefreshCw className={busy ? "size-3.5 animate-spin" : "size-3.5"} />
+                {busy ? "Rebuilding…" : "Regenerate plan"}
+              </button>
+            </div>
           </section>
 
           <section className="rounded-3xl border border-border bg-surface p-4">
