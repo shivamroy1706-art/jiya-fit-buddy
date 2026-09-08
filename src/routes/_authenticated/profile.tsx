@@ -60,16 +60,26 @@ function ProfilePage() {
     enabled: query.trim().length >= 2,
   });
 
+  const {
+    data: health,
+    isLoading: healthLoading,
+    refetch: refetchHealth,
+  } = useQuery({
+    queryKey: ["plan-health", user?.id],
+    queryFn: () => fetchPlanHealth(user!.id),
+    enabled: !!user,
+  });
 
   const xp = data?.profile?.xp ?? 0;
   const level = levelFromXp(xp);
 
   async function regenerate() {
-    if (!user) return;
+    if (!user || busy) return;
     setBusy(true);
     try {
       await regeneratePlan(user.id);
-      toast.success("Plan regenerated for your current profile");
+      await refetchHealth();
+      toast.success("Fresh plan built from your latest answers");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not regenerate plan");
     } finally {
