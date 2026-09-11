@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, Flashlight, Loader2, X } from "lucide-react";
+import { ScannerError, startBarcodeScanner, type ScannerHandle } from "@/lib/barcode-scanner";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
