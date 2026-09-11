@@ -130,6 +130,14 @@ export async function startBarcodeScanner(
   const finish = (code: string) => {
     if (stopped || !code) return;
     stopped = true;
+    try {
+      if (raf) cancelAnimationFrame(raf);
+      zxingStop?.();
+      stream.getTracks().forEach((t) => t.stop());
+      video.srcObject = null;
+    } catch {
+      /* ignore */
+    }
     onResult(code);
   };
 
