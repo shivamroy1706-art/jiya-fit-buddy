@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ClientOnly } from "@tanstack/react-router";
-import { Footprints, Play, Pause, Map as MapIcon, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Footprints, Play, Pause } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { todayISO } from "@/lib/app-data";
 import {
@@ -10,8 +9,6 @@ import {
   requestMotionPermission,
   startPedometer,
 } from "@/lib/pedometer";
-
-const WalkMap = lazy(() => import("@/components/app/WalkMap"));
 
 type Props = {
   userId: string;
