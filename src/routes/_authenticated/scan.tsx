@@ -179,7 +179,7 @@ function ScanPage() {
       <div className="space-y-4 px-4">
         <section className="overflow-hidden rounded-3xl border border-border bg-surface">
           <div className="relative aspect-[4/3] bg-black">
-            <video ref={videoRef} playsInline muted className="size-full object-cover" />
+            <video ref={videoRef} playsInline muted autoPlay className="size-full object-cover" />
             {!scanning && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
                 <Camera className="size-8 text-primary" />
@@ -188,16 +188,36 @@ function ScanPage() {
                 </p>
               </div>
             )}
+            {scanning && (
+              <>
+                <div className="pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 bg-primary/80" />
+                <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[11px] text-white/80">
+                  Fill the box with the barcode · hold 10–20 cm away · steady for a second
+                </p>
+              </>
+            )}
             <div className="pointer-events-none absolute inset-x-10 inset-y-16 rounded-2xl border-2 border-primary/70" />
           </div>
           <div className="flex gap-2 p-3">
             <button
               type="button"
               onClick={() => (scanning ? stopScan() : void startScan())}
-              className="flex-1 rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+              className="tap flex-1 rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
             >
               {scanning ? "Stop" : "Start camera"}
             </button>
+            {scanning && torchAvailable && (
+              <button
+                type="button"
+                onClick={() => void toggleTorch()}
+                aria-label="Toggle flashlight"
+                className={`tap rounded-full border px-4 text-sm font-semibold ${
+                  torchOn ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
+                <Flashlight className="size-4" />
+              </button>
+            )}
           </div>
         </section>
 
