@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Camera, Loader2, X } from "lucide-react";
+import { Camera, Flashlight, Loader2, X } from "lucide-react";
+import { ScannerError, startBarcodeScanner, type ScannerHandle } from "@/lib/barcode-scanner";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/AppHeader";
 import { BottomNav } from "@/components/app/BottomNav";
@@ -40,8 +41,10 @@ type ScanResult = {
 function ScanPage() {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const stopRef = useRef<(() => void) | null>(null);
+  const handleRef = useRef<ScannerHandle | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [manual, setManual] = useState("");
@@ -60,38 +63,46 @@ function ScanPage() {
     enabled: !!user,
   });
 
-  useEffect(() => () => stopRef.current?.(), []);
+  useEffect(() => () => handleRef.current?.stop(), []);
 
   async function startScan() {
     setResult(null);
     setScanning(true);
+    setTorchOn(false);
     try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current ?? undefined,
-        (res) => {
-          if (res) {
-            const code = res.getText();
-            controls.stop();
-            stopRef.current = null;
-            setScanning(false);
-            void lookup(code);
-          }
-        },
-      );
-      stopRef.current = () => controls.stop();
-    } catch {
+      const video = videoRef.current;
+      if (!video) throw new ScannerError("Camera view not ready. Try again.");
+      const handle = await startBarcodeScanner(video, (code) => {
+        handleRef.current = null;
+        setScanning(false);
+        setTorchAvailable(false);
+        setTorchOn(false);
+        if (navigator.vibrate) navigator.vibrate(60);
+        void lookup(code);
+      });
+      handleRef.current = handle;
+      setTorchAvailable(handle.hasTorch());
+    } catch (err) {
       setScanning(false);
-      toast.error("Camera unavailable — enter the barcode manually.");
+      setTorchAvailable(false);
+      toast.error(
+        err instanceof ScannerError ? err.message : "Camera unavailable — enter the barcode manually.",
+      );
     }
   }
 
   function stopScan() {
-    stopRef.current?.();
-    stopRef.current = null;
+    handleRef.current?.stop();
+    handleRef.current = null;
     setScanning(false);
+    setTorchAvailable(false);
+    setTorchOn(false);
+  }
+
+  async function toggleTorch() {
+    const next = !torchOn;
+    await handleRef.current?.setTorch(next);
+    setTorchOn(next);
   }
 
   async function lookup(barcode: string) {
@@ -168,7 +179,7 @@ function ScanPage() {
       <div className="space-y-4 px-4">
         <section className="overflow-hidden rounded-3xl border border-border bg-surface">
           <div className="relative aspect-[4/3] bg-black">
-            <video ref={videoRef} playsInline muted className="size-full object-cover" />
+            <video ref={videoRef} playsInline muted autoPlay className="size-full object-cover" />
             {!scanning && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
                 <Camera className="size-8 text-primary" />
@@ -177,16 +188,36 @@ function ScanPage() {
                 </p>
               </div>
             )}
+            {scanning && (
+              <>
+                <div className="pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 bg-primary/80" />
+                <p className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[11px] text-white/80">
+                  Fill the box with the barcode · hold 10–20 cm away · steady for a second
+                </p>
+              </>
+            )}
             <div className="pointer-events-none absolute inset-x-10 inset-y-16 rounded-2xl border-2 border-primary/70" />
           </div>
           <div className="flex gap-2 p-3">
             <button
               type="button"
               onClick={() => (scanning ? stopScan() : void startScan())}
-              className="flex-1 rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
+              className="tap flex-1 rounded-full bg-primary py-2.5 text-sm font-semibold text-primary-foreground"
             >
               {scanning ? "Stop" : "Start camera"}
             </button>
+            {scanning && torchAvailable && (
+              <button
+                type="button"
+                onClick={() => void toggleTorch()}
+                aria-label="Toggle flashlight"
+                className={`tap rounded-full border px-4 text-sm font-semibold ${
+                  torchOn ? "border-primary bg-primary/15 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
+                <Flashlight className="size-4" />
+              </button>
+            )}
           </div>
         </section>
 
