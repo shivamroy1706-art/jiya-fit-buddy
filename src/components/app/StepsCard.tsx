@@ -119,29 +119,7 @@ export function StepsCard({ userId, initialSteps, weightKg, goal = 8000 }: Props
             Step tracking needs a phone with motion sensors — open the app on your phone to count steps.
           </p>
         )}
-        <button
-          type="button"
-          onClick={() => setShowMap((s) => !s)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 px-4 py-1.5 text-xs font-semibold text-primary"
-        >
-          <MapIcon className="size-3.5" />
-          {showMap ? "Hide map" : "Map"}
-        </button>
       </div>
-
-      {showMap && (
-        <ClientOnly>
-          <Suspense
-            fallback={
-              <div className="mt-3 flex h-56 items-center justify-center rounded-2xl border border-border bg-surface-alt">
-                <Loader2 className="size-5 animate-spin text-primary" />
-              </div>
-            }
-          >
-            <WalkMap userId={userId} />
-          </Suspense>
-        </ClientOnly>
-      )}
 
       {tracking && (
         <p className="mt-2 text-[11px] text-muted-foreground">
