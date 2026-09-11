@@ -62,38 +62,46 @@ function ScanPage() {
     enabled: !!user,
   });
 
-  useEffect(() => () => stopRef.current?.(), []);
+  useEffect(() => () => handleRef.current?.stop(), []);
 
   async function startScan() {
     setResult(null);
     setScanning(true);
+    setTorchOn(false);
     try {
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      const reader = new BrowserMultiFormatReader();
-      const controls = await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current ?? undefined,
-        (res) => {
-          if (res) {
-            const code = res.getText();
-            controls.stop();
-            stopRef.current = null;
-            setScanning(false);
-            void lookup(code);
-          }
-        },
-      );
-      stopRef.current = () => controls.stop();
-    } catch {
+      const video = videoRef.current;
+      if (!video) throw new ScannerError("Camera view not ready. Try again.");
+      const handle = await startBarcodeScanner(video, (code) => {
+        handleRef.current = null;
+        setScanning(false);
+        setTorchAvailable(false);
+        setTorchOn(false);
+        if (navigator.vibrate) navigator.vibrate(60);
+        void lookup(code);
+      });
+      handleRef.current = handle;
+      setTorchAvailable(handle.hasTorch());
+    } catch (err) {
       setScanning(false);
-      toast.error("Camera unavailable — enter the barcode manually.");
+      setTorchAvailable(false);
+      toast.error(
+        err instanceof ScannerError ? err.message : "Camera unavailable — enter the barcode manually.",
+      );
     }
   }
 
   function stopScan() {
-    stopRef.current?.();
-    stopRef.current = null;
+    handleRef.current?.stop();
+    handleRef.current = null;
     setScanning(false);
+    setTorchAvailable(false);
+    setTorchOn(false);
+  }
+
+  async function toggleTorch() {
+    const next = !torchOn;
+    await handleRef.current?.setTorch(next);
+    setTorchOn(next);
   }
 
   async function lookup(barcode: string) {
