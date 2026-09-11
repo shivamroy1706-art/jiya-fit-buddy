@@ -40,8 +40,10 @@ type ScanResult = {
 function ScanPage() {
   const { user } = useAuth();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const stopRef = useRef<(() => void) | null>(null);
+  const handleRef = useRef<ScannerHandle | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [manual, setManual] = useState("");
